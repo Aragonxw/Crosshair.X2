@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repuls Custom Reticle Studio</title>
+    <style>
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            font-family: Times, "Times New Roman", serif;
+            margin: 20px;
+        }
+        button, select, input {
+            background-color: #000000;
+            color: #ffffff;
+            border: 1px solid #ffffff;
+            font-family: Times, "Times New Roman", serif;
+            margin: 4px 0;
+            padding: 4px;
+        }
+        button {
+            cursor: pointer;
+        }
+        hr {
+            border: 0;
+            border-top: 1px solid #ffffff;
+            margin: 15px 0;
+        }
+        pre {
+            border: 1px solid #ffffff;
+            padding: 10px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: monospace;
+            background: #000000;
+            color: #00ff00;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .canvas-container {
+            position: relative;
+            width: 480px;
+            height: 320px;
+            border: 1px solid #ffffff;
+            margin-bottom: 10px;
+            background-color: #000000;
+            cursor: crosshair;
+        }
+        #webglCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        #reticlePreviewLayer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #drawingCanvas {
+            border: 1px solid #ffffff;
+            cursor: crosshair;
+            background-color: #000000;
+        }
+        .color-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+    </style>
+    <!-- Three.js Library for 3D Target Lobby -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <h1>REPULS CUSTOM RETICLE STUDIO</h1>
+    <p>Free open-source custom crosshair generator & vector drawing tool for Repuls.io.</p>
+
+    <hr>
+
+    <h2>1. 3D TARGET LOBBY & PREVIEW (STATIC TARGET)</h2>
+    <div class="canvas-container">
+        <canvas id="webglCanvas"></canvas>
+        <div id="reticlePreviewLayer"></div>
+    </div>
+    <p>Hits: <span id="hitCounter">0</span> <i>(Click target in 3D canvas to test hit reaction)</i></p>
+
+    <hr>
+
+    <h2>2. INTERACTIVE CUSTOM DRAWING BOARD</h2>
+    <p><i>Draw custom reticle graphics on the 24x24 grid. Drawing automatically switches mode to Custom Drawn and updates the script code!</i></p>
+    <canvas id="drawingCanvas" width="240" height="240"></canvas>
+    <br>
+    <label>Tool Selection:</label>
+    <button id="btnLineTool" onclick="setTool('line')">Straight Line Tool</button>
+    <button id="btnPixelTool" onclick="setTool('pixel')">Pixel Toggle Tool</button>
+    <button onclick="clearGrid()">Clear Grid</button>
+
+    <hr>
+
+    <h2>3. CONFIGURATION CONTROLS</h2>
+
+    <div>
+        <label for="shape">Reticle Shape / Option Preset:</label><br>
+        <select id="shape" onchange="rebuildAll()">
+            <option value="custom">Custom Drawn</option>
+            <option value="vex-circle">Vex Circle Target</option>
+            <option value="cross">Classic Crosshair</option>
+            <option value="gap-cross">Gap Crosshair</option>
+            <option value="circle-dot">Circle + Dot</option>
+            <option value="dot">Dot Only</option>
+            <option value="square">Square Box</option>
+            <option value="t-shape">T-Shape</option>
+            <option value="triangle">Triangle Target</option>
+            <option value="diamond">Diamond</option>
+        </select>
+    </div>
+
+    <br>
+
+    <div>
+        <label>Dual Color Pickers (Hex Input & Color Box):</label><br>
+        <div class="color-row">
+            <input type="text" id="colorHex" value="#00FFCC" oninput="syncColorInput('hex')">
+            <input type="color" id="colorPicker" value="#00ffcc" oninput="syncColorInput('picker')">
+        </div>
+    </div>
+
+    <br>
+
+    <div>
+        <label for="size">Size (px):</label><br>
+        <input type="range" id="sizeRange" min="4" max="60" value="16" oninput="syncSizeInput('range')">
+        <input type="number" id="sizeNum" min="4" max="60" value="16" oninput="syncSizeInput('num')">
+    </div>
+
+    <div>
+        <label for="thickness">Thickness (px):</label><br>
+        <input type="number" id="thickness" value="2" min="1" max="10" oninput="rebuildAll()">
+    </div>
+
+    <div>
+        <label for="gap">Gap / Offset (px):</label><br>
+        <input type="number" id="gap" value="5" min="0" max="30" oninput="rebuildAll()">
+    </div>
+
+    <div>
+        <label for="dotSize">Center Dot Size (px):</label><br>
+        <input type="number" id="dotSize" value="3" min="0" max="15" oninput="rebuildAll()">
+    </div>
+
+    <hr>
+
+    <h2>4. TAMPERMONKEY SPONSORED GUIDE</h2>
+    <ol>
+        <li>Install the official free <strong>Tampermonkey</strong> browser extension in your Web Browser.</li>
+        <li>Open the Tampermonkey icon in your browser extension toolbar and select <strong>Create a new script...</strong></li>
+        <li>Select and copy the entire text block from Section 5 below.</li>
+        <li>Paste the copied script into your Tampermonkey editor canvas (replacing default placeholder template code).</li>
+        <li>Press <strong>Ctrl + S</strong> or click <strong>File -&gt; Save</strong> in Tampermonkey.</li>
+        <li>Open <a href="https://repuls.io" target="_blank" style="color: #ffffff;">repuls.io</a> and your newly configured custom crosshair will render on screen!</li>
+    </ol>
+
+    <hr>
+
+    <h2>5. AUTO-UPDATING UNIFIED CODE OUTPUT</h2>
+    <pre id="unifiedScriptOutput"></pre>
+
+    <script>
+        // ----------------------------------------------------
+        // 1. GRID & VECTOR DRAWING BOARD
+        // ----------------------------------------------------
+        const GRID_SIZE = 24;
+        const CELL_SIZE = 10;
+        let gridData = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0));
+        let activeTool = 'line';
+        let lineStart = null;
+        let isMouseDown = false;
+
+        const drawCanvas = document.getElementById('drawingCanvas');
+        const drawCtx = drawCanvas.getContext('2d');
+
+        function renderGrid(hoverCells = []) {
+            drawCtx.fillStyle = '#000000';
+            drawCtx.fillRect(0, 0, 240, 240);
+
+            // Draw Background Grid
+            drawCtx.strokeStyle = '#222222';
+            drawCtx.lineWidth = 1;
+            for (let i = 0; i <= GRID_SIZE; i++) {
+                drawCtx.beginPath();
+                drawCtx.moveTo(i * CELL_SIZE, 0);
+                drawCtx.lineTo(i * CELL_SIZE, 240);
+                drawCtx.stroke();
+
+                drawCtx.beginPath();
+                drawCtx.moveTo(0, i * CELL_SIZE);
+                drawCtx.lineTo(240, i * CELL_SIZE);
+                drawCtx.stroke();
+            }
+
+            // Draw Center Reference Axis
+            drawCtx.strokeStyle = '#444444';
+            drawCtx.beginPath();
+            drawCtx.moveTo(12 * CELL_SIZE, 0);
+            drawCtx.lineTo(12 * CELL_SIZE, 240);
+            drawCtx.moveTo(0, 12 * CELL_SIZE);
+            drawCtx.lineTo(240, 12 * CELL_SIZE);
+            drawCtx.stroke();
+
+            // Render Solid Drawn Cells
+            const activeColor = document.getElementById('colorHex').value || '#00FFCC';
+            drawCtx.fillStyle = activeColor;
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    if (gridData[r][c] === 1) {
+                        drawCtx.fillRect(c * CELL_SIZE + 1, r * CELL_SIZE + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+                    }
+                }
+            }
+
+            // Render Line Preview / Hover Cells
+            drawCtx.fillStyle = '#ffffff';
+            hoverCells.forEach(cell => {
+                drawCtx.fillRect(cell.c * CELL_SIZE + 2, cell.r * CELL_SIZE + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+            });
+        }
+
+        function getCellCoords(e) {
+            const rect = drawCanvas.getBoundingClientRect();
+            const c = Math.floor((e.clientX - rect.left) / CELL_SIZE);
+            const r = Math.floor((e.clientY - rect.top) / CELL_SIZE);
+            return {
+                r: Math.max(0, Math.min(GRID_SIZE - 1, r)),
+                c: Math.max(0, Math.min(GRID_SIZE - 1, c))
+            };
+        }
+
+        function getBresenhamLine(x0, y0, x1, y1) {
+            const cells = [];
+            let dx = Math.abs(x1 - x0);
+            let dy = Math.abs(y1 - y0);
+            let sx = (x0 < x1) ? 1 : -1;
+            let sy = (y0 < y1) ? 1 : -1;
+            let err = dx - dy;
+
+            let currX = x0;
+            let currY = y0;
+
+            while (true) {
+                cells.push({ r: currY, c: currX });
+                if (currX === x1 && currY === y1) break;
+                let e2 = 2 * err;
+                if (e2 > -dy) { err -= dy; currX += sx; }
+                if (e2 < dx) { err += dx; currY += sy; }
+            }
+            return cells;
+        }
+
+        drawCanvas.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            const { r, c } = getCellCoords(e);
+
+            if (activeTool === 'pixel') {
+                gridData[r][c] = gridData[r][c] === 1 ? 0 : 1;
+                document.getElementById('shape').value = 'custom';
+                rebuildAll();
+            } else if (activeTool === 'line') {
+                if (!lineStart) {
+                    lineStart = { r, c };
+                } else {
+                    const lineCells = getBresenhamLine(lineStart.c, lineStart.r, c, r);
+                    lineCells.forEach(cell => { gridData[cell.r][cell.c] = 1; });
+                    lineStart = null;
+                    document.getElementById('shape').value = 'custom';
+                    rebuildAll();
+                }
+            }
+        });
+
+        drawCanvas.addEventListener('mousemove', (e) => {
+            const { r, c } = getCellCoords(e);
+            if (activeTool === 'pixel' && isMouseDown) {
+                gridData[r][c] = 1;
+                document.getElementById('shape').value = 'custom';
+                rebuildAll();
+            } else if (activeTool === 'line' && lineStart) {
+                const previewCells = getBresenhamLine(lineStart.c, lineStart.r, c, r);
+                renderGrid(previewCells);
+            } else {
+                renderGrid([{ r, c }]);
+            }
+        });
+
+        window.addEventListener('mouseup', () => { isMouseDown = false; });
+
+        function setTool(tool) {
+            activeTool = tool;
+            lineStart = null;
+            document.getElementById('btnLineTool').style.border = tool === 'line' ? '2px solid #00ffcc' : '1px solid #ffffff';
+            document.getElementById('btnPixelTool').style.border = tool === 'pixel' ? '2px solid #00ffcc' : '1px solid #ffffff';
+            renderGrid();
+        }
+
+        function clearGrid() {
+            gridData = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0));
+            lineStart = null;
+            rebuildAll();
+        }
+
+        // ----------------------------------------------------
+        // 2. INPUT SYNCHRONIZATION
+        // ----------------------------------------------------
+        function syncColorInput(source) {
+            if (source === 'hex') {
+                const hexVal = document.getElementById('colorHex').value;
+                if (/^#[0-9A-F]{6}$/i.test(hexVal)) {
+                    document.getElementById('colorPicker').value = hexVal;
+                }
+            } else {
+                document.getElementById('colorHex').value = document.getElementById('colorPicker').value.toUpperCase();
+            }
+            rebuildAll();
+        }
+
+        function syncSizeInput(source) {
+            if (source === 'range') {
+                document.getElementById('sizeNum').value = document.getElementById('sizeRange').value;
+            } else {
+                document.getElementById('sizeRange').value = document.getElementById('sizeNum').value;
+            }
+            rebuildAll();
+        }
+
+        // ----------------------------------------------------
+        // 3. UNIFIED SCRIPT GENERATOR
+        // ----------------------------------------------------
+        function getUnifiedScript() {
+            const shape = document.getElementById('shape').value;
+            const color = document.getElementById('colorHex').value;
+            const size = document.getElementById('sizeNum').value + 'px';
+            const thickness = document.getElementById('thickness').value + 'px';
+            const gap = document.getElementById('gap').value + 'px';
+            const dotSize = document.getElementById('dotSize').value + 'px';
+
+            return `// ==UserScript==
+// @name         Repuls.io Custom Reticle (Sponsored by Tampermonkey)
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  Custom reticle overlay for Repuls.io
+// @author       Repuls Custom Reticle Studio
+// @match        *://repuls.io/*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    const existing = document.getElementById('repuls-custom-reticle');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'repuls-custom-reticle';
+    Object.assign(overlay.style, {
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        pointerEvents: 'none',
+        zIndex: '999999',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        filter: 'drop-shadow(0px 0px 1px #000000)'
+    });
+
+    const shape = '${shape}';
+    const color = '${color}';
+    const size = '${size}';
+    const thickness = '${thickness}';
+    const gap = '${gap}';
+    const dotSize = '${dotSize}';
+    const gridData = ${JSON.stringify(gridData)};
+
+    if (shape === 'custom') {
+        const gridCanvas = document.createElement('canvas');
+        gridCanvas.width = 240;
+        gridCanvas.height = 240;
+        gridCanvas.style.width = (parseInt(size) * 2.5) + 'px';
+        gridCanvas.style.height = (parseInt(size) * 2.5) + 'px';
+        const ctx = gridCanvas.getContext('2d');
+        ctx.fillStyle = color;
+        for(let r = 0; r < 24; r++) {
+            for(let c = 0; c < 24; c++) {
+                if(gridData[r] && gridData[r][c] === 1) {
+                    ctx.fillRect(c * 10, r * 10, 10, 10);
+                }
+            }
+        }
+        overlay.appendChild(gridCanvas);
+    } else {
+        if (parseInt(dotSize) > 0) {
+            const dot = document.createElement('div');
+            Object.assign(dot.style, {
+                position: 'absolute',
+                width: dotSize,
+                height: dotSize,
+                backgroundColor: color,
+                borderRadius: '50%'
+            });
+            overlay.appendChild(dot);
+        }
+
+        if (shape === 'vex-circle') {
+            const circle = document.createElement('div');
+            Object.assign(circle.style, {
+                position: 'absolute',
+                width: (parseInt(size) * 2) + 'px',
+                height: (parseInt(size) * 2) + 'px',
+                border: thickness + ' solid ' + color,
+                borderRadius: '50%'
+            });
+            const top = document.createElement('div');
+            Object.assign(top.style, { position: 'absolute', width: thickness, height: size, backgroundColor: color, bottom: gap });
+            const bottom = document.createElement('div');
+            Object.assign(bottom.style, { position: 'absolute', width: thickness, height: size, backgroundColor: color, top: gap });
+            const left = document.createElement('div');
+            Object.assign(left.style, { position: 'absolute', height: thickness, width: size, backgroundColor: color, right: gap });
+            const right = document.createElement('div');
+            Object.assign(right.style, { position: 'absolute', height: thickness, width: size, backgroundColor: color, left: gap });
+            overlay.append(circle, top, bottom, left, right);
+        } else if (shape === 'cross' || shape === 'gap-cross') {
+            const top = document.createElement('div');
+            Object.assign(top.style, { position: 'absolute', width: thickness, height: size, backgroundColor: color, bottom: gap });
+            const bottom = document.createElement('div');
+            Object.assign(bottom.style, { position: 'absolute', width: thickness, height: size, backgroundColor: color, top: gap });
+            const left = document.createElement('div');
+            Object.assign(left.style, { position: 'absolute', height: thickness, width: size, backgroundColor: color, right: gap });
+            const right = document.createElement('div');
+            Object.assign(right.style, { position: 'absolute', height: thickness, width: size, backgroundColor: color, left: gap });
+            overlay.append(top, bottom, left, right);
+        } else if (shape === 't-shape') {
+            const bottom = document.createElement('div');
+            Object.assign(bottom.style, { position: 'absolute', width: thickness, height: size, backgroundColor: color, top: gap });
+            const left = document.createElement('div');
+            Object.assign(left.style, { position: 'absolute', height: thickness, width: size, backgroundColor: color, right: gap });
+            const right = document.createElement('div');
+            Object.assign(right.style, { position: 'absolute', height: thickness, width: size, backgroundColor: color, left: gap });
+            overlay.append(bottom, left, right);
+        } else if (shape === 'triangle') {
+            const tri = document.createElement('div');
+            Object.assign(tri.style, {
+                position: 'absolute',
+                width: '0',
+                height: '0',
+                borderLeft: size + ' solid transparent',
+                borderRight: size + ' solid transparent',
+                borderBottom: (parseInt(size) * 1.5) + 'px solid ' + color
+            });
+            overlay.appendChild(tri);
+        } else if (shape === 'diamond') {
+            const dia = document.createElement('div');
+            Object.assign(dia.style, {
+                position: 'absolute',
+                width: size,
+                height: size,
+                border: thickness + ' solid ' + color,
+                transform: 'rotate(45deg)'
+            });
+            overlay.appendChild(dia);
+        } else if (shape === 'circle-dot') {
+            const circle = document.createElement('div');
+            Object.assign(circle.style, {
+                position: 'absolute',
+                width: (parseInt(size) * 2) + 'px',
+                height: (parseInt(size) * 2) + 'px',
+                border: thickness + ' solid ' + color,
+                borderRadius: '50%'
+            });
+            overlay.appendChild(circle);
+        } else if (shape === 'square') {
+            const box = document.createElement('div');
+            Object.assign(box.style, {
+                position: 'absolute',
+                width: (parseInt(size) * 1.5) + 'px',
+                height: (parseInt(size) * 1.5) + 'px',
+                border: thickness + ' solid ' + color
+            });
+            overlay.appendChild(box);
+        }
+    }
+
+    if (document.body) {
+        document.body.appendChild(overlay);
+    } else {
+        window.addEventListener('DOMContentLoaded', () => document.body.appendChild(overlay));
+    }
+})();`;
+        }
+
+        function updateReticleDOMPreview() {
+            const previewLayer = document.getElementById('reticlePreviewLayer');
+            previewLayer.innerHTML = '';
+
+            const shape = document.getElementById('shape').value;
+            const color = document.getElementById('colorHex').value;
+            const size = document.getElementById('sizeNum').value + 'px';
+            const thickness = document.getElementById('thickness').value + 'px';
+            const gap = document.getElementById('gap').value + 'px';
+            const dotSize = document.getElementById('dotSize').value + 'px';
+
+            if (shape === 'custom') {
+                const previewCanvas = document.createElement('canvas');
+                previewCanvas.width = 240;
+                previewCanvas.height = 240;
+                previewCanvas.style.width = (parseInt(size) * 2.5) + 'px';
+                previewCanvas.style.height = (parseInt(size) * 2.5) + 'px';
+                const ctx = previewCanvas.getContext('2d');
+                ctx.fillStyle = color;
+                for(let r = 0; r < 24; r++) {
+                    for(let c = 0; c < 24; c++) {
+                        if(gridData[r][c] === 1) {
+                            ctx.fillRect(c * 10, r * 10, 10, 10);
+                        }
+                    }
+                }
+                previewLayer.appendChild(previewCanvas);
+            } else {
+                if (parseInt(dotSize) > 0) {
+                    const dot = document.createElement('div');
+                    Object.assign(dot.style, {
+                        position: 'absolute',
+                        width: dotSize,
+                        height: dotSize,
+                        backgroundColor: color,
+                        borderRadius: '50%'
+                    });
+                    previewLayer.appendChild(dot);
+                }
+
+                if (shape === 'vex-circle') {
+                    const circle = document.createElement('div');
+                    Object.assign(circle.style, {
+                        position: 'absolute',
+                        width: (parseInt(size) * 2) + 'px',
+                        height: (parseInt(size) * 2) + 'px',
+                        border: thickness + ' solid ' + color,
+                        borderRadius: '50%'
+                    });
+                    const top = document.createElement('div');
+                    Object.assign(top.style, { position: 'absolute', width: thickness, height: size, backgroundColor: color, bottom: gap });
+                    const bottom = document.createElement('div');
+                    Object.assign(bottom.style, { position: 'absolute', width: thickness, height: size, backgroundColor: color, top: gap });
+                    const left = document.createElement('div');
+                    Object.assign(left.style, { position: 'absolute', height: thickness, width: size, backgroundColor: color, right: gap });
+                    const right = document.createElement('div');
+                    Object.assign(right.style, { position: 'absolute', height: thickness, width: size, backgroundColor: color, left: gap });
+                    previewLayer.append(circle, top, bottom, left, right);
+                } else if (shape === 'cross' || shape === 'gap-cross') {
+                    const top = document.createElement('div');
+                    Object.assign(top.style, { position: 'absolute', width: thickness, height: size, backgroundColor: color, bottom: gap });
+                    const bottom = document.createElement('div');
+                    Object.assign(bottom.style, { position: 'absolute', width: thickness, height: size, backgroundColor: color, top: gap });
+                    const left = document.createElement('div');
+                    Object.assign(left.style, { position: 'absolute', height: thickness, width: size, backgroundColor: color, right: gap });
+                    const right = document.createElement('div');
+                    Object.assign(right.style, { position: 'absolute', height: thickness, width: size, backgroundColor: color, left: gap });
+                    previewLayer.append(top, bottom, left, right);
+                } else if (shape === 't-shape') {
+                    const bottom = document.createElement('div');
+                    Object.assign(bottom.style, { position: 'absolute', width: thickness, height: size, backgroundColor: color, top: gap });
+                    const left = document.createElement('div');
+                    Object.assign(left.style, { position: 'absolute', height: thickness, width: size, backgroundColor: color, right: gap });
+                    const right = document.createElement('div');
+                    Object.assign(right.style, { position: 'absolute', height: thickness, width: size, backgroundColor: color, left: gap });
+                    previewLayer.append(bottom, left, right);
+                } else if (shape === 'triangle') {
+                    const tri = document.createElement('div');
+                    Object.assign(tri.style, {
+                        position: 'absolute',
+                        width: '0',
+                        height: '0',
+                        borderLeft: size + ' solid transparent',
+                        borderRight: size + ' solid transparent',
+                        borderBottom: (parseInt(size) * 1.5) + 'px solid ' + color
+                    });
+                    previewLayer.appendChild(tri);
+                } else if (shape === 'diamond') {
+                    const dia = document.createElement('div');
+                    Object.assign(dia.style, {
+                        position: 'absolute',
+                        width: size,
+                        height: size,
+                        border: thickness + ' solid ' + color,
+                        transform: 'rotate(45deg)'
+                    });
+                    previewLayer.appendChild(dia);
+                } else if (shape === 'circle-dot') {
+                    const circle = document.createElement('div');
+                    Object.assign(circle.style, {
+                        position: 'absolute',
+                        width: (parseInt(size) * 2) + 'px',
+                        height: (parseInt(size) * 2) + 'px',
+                        border: thickness + ' solid ' + color,
+                        borderRadius: '50%'
+                    });
+                    previewLayer.appendChild(circle);
+                } else if (shape === 'square') {
+                    const box = document.createElement('div');
+                    Object.assign(box.style, {
+                        position: 'absolute',
+                        width: (parseInt(size) * 1.5) + 'px',
+                        height: (parseInt(size) * 1.5) + 'px',
+                        border: thickness + ' solid ' + color
+                    });
+                    previewLayer.appendChild(box);
+                }
+            }
+        }
+
+        function rebuildAll() {
+            renderGrid();
+            updateReticleDOMPreview();
+            document.getElementById('unifiedScriptOutput').innerText = getUnifiedScript();
+        }
+
+        // ----------------------------------------------------
+        // 4. THREE.JS STATIC 3D TARGET LOBBY
+        // ----------------------------------------------------
+        let scene, camera, renderer, characterGroup;
+        let raycaster, mouse;
+        let hitCount = 0;
+
+        function init3DScene() {
+            const canvas = document.getElementById('webglCanvas');
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+
+            camera = new THREE.PerspectiveCamera(45, 480 / 320, 0.1, 1000);
+            camera.position.set(0, 1.2, 4.5);
+
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            renderer.setSize(480, 320);
+
+            // Lights
+            const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+            const directional = new THREE.DirectionalLight(0x00ffcc, 1.2);
+            directional.position.set(5, 10, 7);
+            scene.add(ambient, directional);
+
+            // Grid Floor
+            const gridHelper = new THREE.GridHelper(10, 20, 0xffffff, 0x444444);
+            gridHelper.position.y = -0.5;
+            scene.add(gridHelper);
+
+            // Character Target Model
+            characterGroup = new THREE.Group();
+
+            const matArmor = new THREE.MeshLambertMaterial({ color: 0x223344 });
+            const matVisor = new THREE.MeshBasicMaterial({ color: 0x00ffcc });
+
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.0, 0.4), matArmor);
+            torso.position.y = 1.0;
+            characterGroup.add(torso);
+
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), matArmor);
+            head.position.y = 1.8;
+            characterGroup.add(head);
+
+            const visor = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.1, 0.2), matVisor);
+            visor.position.set(0, 1.85, 0.15);
+            characterGroup.add(visor);
+
+            const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.8, 0.25), matArmor);
+            leftArm.position.set(-0.6, 1.0, 0);
+            const rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.8, 0.25), matArmor);
+            rightArm.position.set(0.6, 1.0, 0);
+            characterGroup.add(leftArm, rightArm);
+
+            // Static Pose (No Rotation Loop)
+            characterGroup.rotation.y = 0;
+            scene.add(characterGroup);
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            // Target Click Hit Reaction
+            canvas.addEventListener('pointerdown', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                mouse.x = ((e.clientX - rect.left) / canvas.clientWidth) * 2 - 1;
+                mouse.y = -((e.clientY - rect.top) / canvas.clientHeight) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(characterGroup.children);
+
+                if (intersects.length > 0) {
+                    hitCount++;
+                    document.getElementById('hitCounter').innerText = hitCount;
+                    matVisor.color.setHex(0xff0000);
+                    renderer.render(scene, camera);
+                    setTimeout(() => {
+                        matVisor.color.setHex(0x00ffcc);
+                        renderer.render(scene, camera);
+                    }, 150);
+                }
+            });
+
+            // Initial static render render
+            renderer.render(scene, camera);
+        }
+
+        window.onload = () => {
+            init3DScene();
+            setTool('line');
+            rebuildAll();
+        };
+    </script>
+</body>
+</html>
