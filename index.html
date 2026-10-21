@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CROSHAIRx²</title>
+    <!-- Three.js for 3D Target Dummy Preview -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --card-bg: #000000;
+            --border-color: #ffffff;
+            --text-color: #ffffff;
+            --accent-green: #22c55e;
+            --grid-center: #22c55e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Times New Roman', Times, serif;
+            line-height: 1.5;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-family: 'Times New Roman', Times, serif;
+            color: #ffffff;
+            text-shadow: none !important;
+        }
+
+        .header-btn {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+        }
+
+        .studio-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 992px) {
+            .studio-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            padding: 20px;
+            position: relative;
+        }
+
+        .panel.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .panel-title {
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Drawing Section */
+        .grid-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            border: 2px solid var(--border-color);
+            cursor: crosshair;
+            background: #000000;
+            width: 362px;
+            height: 362px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #pixelGrid {
+            display: grid;
+            grid-template-columns: repeat(24, 15px);
+            grid-template-rows: repeat(24, 15px);
+            background-color: #000000;
+            width: 360px;
+            height: 360px;
+            position: relative;
+        }
+
+        .cell {
+            width: 15px;
+            height: 15px;
+            border-right: 1px solid #111111;
+            border-bottom: 1px solid #111111;
+            box-sizing: border-box;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        /* Center grid guidelines */
+        #pixelGrid::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 1px;
+            background-color: var(--grid-center);
+            pointer-events: none !important;
+            z-index: 20;
+        }
+        #pixelGrid::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 1px;
+            background-color: var(--grid-center);
+            pointer-events: none !important;
+            z-index: 20;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .btn {
+            background: #000000;
+            color: #ffffff;
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            font-family: inherit;
+            cursor: pointer;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+            text-shadow: none !important;
+        }
+
+        .btn:hover {
+            background: var(--border-color);
+            color: #000000;
+        }
+
+        .btn.active {
+            background: #ffffff;
+            color: #000000;
+            font-weight: bold;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        select, input[type="text"] {
+            width: 100%;
+            background: #000000;
+            color: #ffffff;
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            font-family: inherit;
+        }
+
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Compact Square Color Picker */
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: 2px solid #ffffff;
+            width: 32px;
+            height: 32px;
+            background-color: #000000;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        input[type="color"]::-webkit-color-swatch {
+            border: none;
+        }
+
+        .color-hex-label {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1rem;
+            color: var(--accent-green);
+            text-shadow: none !important;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="range"] {
+            flex-grow: 1;
+            accent-color: var(--accent-green);
+        }
+
+        .slider-val {
+            font-family: 'Courier New', Courier, monospace;
+            color: var(--accent-green);
+            width: 50px;
+            text-align: right;
+            text-shadow: none !important;
+        }
+
+        /* 3D Viewport */
+        #viewport3D {
+            width: 100%;
+            height: 300px;
+            border: 2px solid var(--border-color);
+            background: #000000;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+
+        textarea {
+            width: 100%;
+            height: 280px;
+            background: #000000;
+            color: var(--accent-green);
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.85rem;
+            resize: vertical;
+            white-space: pre;
+            user-select: text;
+            text-shadow: none !important;
+        }
+
+        ol.steps {
+            padding-left: 20px;
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+        }
+
+        ol.steps li {
+            margin-bottom: 8px;
+        }
+
+        ol.steps a {
+            color: var(--accent-green);
+            text-decoration: underline;
+            text-shadow: none !important;
+        }
+
+        .instructions-box {
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #000000;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.88);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background: #000000;
+            border: 2px solid var(--border-color);
+            padding: 30px;
+            max-width: 650px;
+            width: 90%;
+            position: relative;
+        }
+
+        .modal-card h2 {
+            font-size: 1.6rem;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            color: var(--accent-green);
+            text-shadow: none !important;
+        }
+
+        .modal-card ul {
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+
+        .modal-card li {
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+
+        footer.credits {
+            text-align: center;
+            margin-top: 25px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 15px;
+            font-size: 0.85rem;
+            color: #888888;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Reticle CSS Animations */
+        @keyframes animSpin { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+        @keyframes animPulse { 0%, 100% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -50%) scale(1.3); } }
+        @keyframes animRainbow { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
+        @keyframes animGlitch { 0%, 100% { opacity: 1; transform: translate(-50%, -50%); } 20% { opacity: 0.4; transform: translate(-48%, -52%); } 40% { opacity: 0.9; transform: translate(-52%, -48%); } 60% { opacity: 0.2; transform: translate(-50%, -50%); } 80% { opacity: 1; transform: translate(-51%, -49%); } }
+    </style>
+</head>
+<body>
+
+    <!-- Onboarding Welcome Modal -->
+    <div class="modal-overlay" id="welcomeModal">
+        <div class="modal-card">
+            <h2>CROSHAIRx² Guide</h2>
+            <p style="margin-bottom: 15px; color: #cccccc;">Features and quick start instructions for Repuls.io custom reticles:</p>
+            <ul>
+                <li><strong>24x24 Pixel Designer:</strong> Draw pixel-perfect reticles with paint, line, and preset tools.</li>
+                <li><strong>Presets & Funny Shapes:</strong> Includes Heart, Smiley, Skull, Biohazard, Diamond Star, Donut Ring, and Scope presets.</li>
+                <li><strong>Dynamic Animations:</strong> Choose 360° Spin, Pulse, Rainbow Spectrum Cycle, and Glitch Radar Sweep effects.</li>
+                <li><strong>Interactive 3D Dummy:</strong> Click the target dummy mannequin in the 3D viewport to toggle armor color themes!</li>
+                <li><strong>Tampermonkey Script Generator:</strong> Automated Tampermonkey userscripts with verified multi-stage pointer-lock screenlock detection for live gameplay.</li>
+            </ul>
+            <button class="btn" style="width: 100%; padding: 12px; font-weight: bold;" onclick="closeModal()">Enter Studio</button>
+        </div>
+    </div>
+
+    <header>
+        <h1>CROSHAIRx²</h1>
+        <button class="btn header-btn" onclick="openModal()">Guide & Info</button>
+    </header>
+
+    <div class="studio-layout">
+
+        <!-- Left Panel: Grid Designer & Controls -->
+        <div class="panel">
+            <div class="panel-title">
+                <span>1. Pixel Grid Designer (24x24)</span>
+            </div>
+
+            <div class="grid-container">
+                <div class="canvas-wrapper">
+                    <div id="pixelGrid"></div>
+                </div>
+
+                <div class="toolbar">
+                    <button class="btn active" id="toolToggle" onclick="setTool('toggle')">Paint</button>
+                    <button class="btn" id="toolLine" onclick="setTool('line')">Line</button>
+                    <button class="btn" onclick="clearGrid()">Clear</button>
+                </div>
+
+                <div class="control-group" style="width: 100%; margin-top: 5px;">
+                    <label>Quick Shapes & Tactical Presets</label>
+                    <select id="quickShapeSelect" onchange="applyShape(this.value)">
+                        <option value="blank">-- Blank Canvas --</option>
+                        <option value="cross" selected>Classic Crosshair</option>
+                        <option value="heart">Heart (❤️)</option>
+                        <option value="smiley">Smiley Face (😃)</option>
+                        <option value="skull">Skull & Crossbones (☠️)</option>
+                        <option value="biohazard">Biohazard Symbol</option>
+                        <option value="star">Diamond Star</option>
+                        <option value="donut">Donut Ring Sight</option>
+                        <option value="square">Square Frame</option>
+                        <option value="circle">Circular Ring</option>
+                        <option value="dot">Solid Center Dot</option>
+                        <option value="tstyle">Tactical T-Style</option>
+                        <option value="shotgun">Shotgun Spread Circle</option>
+                        <option value="scope">Sniper Scope Reticle</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-top: 15px;">
+                <div class="control-group">
+                    <label>Reticle Color</label>
+                    <div class="color-picker-wrapper">
+                        <input type="color" id="reticleColorInput" value="#22c55e" oninput="updatePreview()">
+                        <span class="color-hex-label" id="reticleHexDisplay">#22c55e</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Center Dot Overlay</label>
+                    <select id="centerDot" onchange="updatePreview()">
+                        <option value="none" selected>None</option>
+                        <option value="square">Square Dot</option>
+                        <option value="circle">Circular Dot</option>
+                        <option value="tiny">Tiny Pixel Dot</option>
+                        <option value="hollow">Hollow Diamond Dot</option>
+                        <option value="crossdot">Cross Center Dot</option>
+                        <option value="diagonal">Rotated X-Cross (45° Diagonal)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Animation Mode</label>
+                    <select id="animStyle" onchange="updatePreview()">
+                        <option value="none" selected>Static (None)</option>
+                        <option value="spin">360° Smooth Spin</option>
+                        <option value="pulse">Breathing Pulse</option>
+                        <option value="rainbow">Rainbow Spectrum Cycle</option>
+                        <option value="glitch">Glitch Radar Sweep</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Scale Zoom</label>
+                    <div class="slider-row">
+                        <input type="range" id="sliderScale" min="0.5" max="3" step="0.1" value="1" oninput="updatePreview()">
+                        <span class="slider-val" id="scaleVal">1.0x</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>X Offset (Horizontal)</label>
+                    <div class="slider-row">
+                        <input type="range" id="sliderOffsetX" min="-50" max="50" step="1" value="0" oninput="updatePreview()">
+                        <span class="slider-val" id="offsetXVal">0px</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Y Offset (Vertical)</label>
+                    <div class="slider-row">
+                        <input type="range" id="sliderOffsetY" min="-50" max="50" step="1" value="0" oninput="updatePreview()">
+                        <span class="slider-val" id="offsetYVal">0px</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Reticle Opacity</label>
+                    <div class="slider-row">
+                        <input type="range" id="sliderOpacity" min="10" max="100" step="5" value="100" oninput="updatePreview()">
+                        <span class="slider-val" id="opacityVal">100%</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Outer Glow Radius</label>
+                    <div class="slider-row">
+                        <input type="range" id="sliderGlow" min="0" max="20" step="1" value="0" oninput="updatePreview()">
+                        <span class="slider-val" id="glowVal">0px</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: 3D Target Viewport -->
+        <div class="panel">
+            <div class="panel-title">
+                <span>2. Solid 3D Target Preview</span>
+                <span style="font-size: 0.75rem; color: var(--accent-green); text-transform: none; text-shadow: none !important;">(Click Dummy to Toggle Armor)</span>
+            </div>
+
+            <div class="control-group">
+                <label>Map Background Color</label>
+                <div class="color-picker-wrapper">
+                    <input type="color" id="mapColorInput" value="#000000" oninput="setBgColor(this.value)">
+                    <span class="color-hex-label" id="mapHexDisplay">#000000</span>
+                </div>
+            </div>
+
+            <div id="viewport3D" title="Click Target Dummy to Change Color Scheme">
+                <div id="previewReticle" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 30;"></div>
+            </div>
+        </div>
+
+        <!-- Full-Width Bottom Panel: Tampermonkey Userscript Generator -->
+        <div class="panel full-width">
+            <div class="panel-title">
+                <span>3. Tampermonkey Userscript Generator</span>
+            </div>
+
+            <div class="instructions-box">
+                <ol class="steps">
+                    <li>Install <a href="https://www.tampermonkey.net/" target="_blank">Tampermonkey</a> browser extension (proudly sponsored by Tampermonkey).</li>
+                    <li>Design your custom reticle using the grid tools or presets and select animations.</li>
+                    <li>Create a new script in Tampermonkey, paste the generated JavaScript code below.</li>
+                    <li>Save (`Ctrl + S`), join Repuls.io, lock pointer in game, and your custom reticle activates automatically!</li>
+                </ol>
+            </div>
+
+            <div class="control-group">
+                <label>Script Name</label>
+                <input type="text" id="scriptNameInput" value="CROSHAIRx² Custom Reticle" oninput="generateUserscript()">
+            </div>
+
+            <div class="control-group" style="margin-bottom: 0;">
+                <label>Generated Userscript Code</label>
+                <textarea id="scriptOutput" readonly></textarea>
+            </div>
+        </div>
+
+    </div>
+
+    <footer class="credits">
+        CROSHAIRx² &bull; Developer: Aragon &bull; Created: October 16, 2026 &bull; Licensed under MIT License
+    </footer>
+
+    <script>
+        const GRID_SIZE = 24;
+        let gridData = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0));
+        let currentTool = 'toggle';
+        let isMouseDown = false;
+        let lineStart = null;
+
+        // Three.js 3D Variables
+        let scene, camera, renderer, dummyGroup, dummyArmorMat, dummyCoreMat;
+        let raycaster, mouseVec;
+
+        // Dummy Color Themes: 0 = Dark Blue, 1 = Blood Red, 2 = Stealth Navy
+        const dummyThemes = [
+            { armor: 0x1e3a8a, core: 0x3b82f6 },
+            { armor: 0x990000, core: 0xef4444 },
+            { armor: 0x1e293b, core: 0x22c55e }
+        ];
+        let currentThemeIndex = 0;
+
+        function openModal() {
+            document.getElementById('welcomeModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('welcomeModal').classList.remove('active');
+        }
+
+        const gridElement = document.getElementById('pixelGrid');
+        const cells = [];
+
+        function initGrid() {
+            gridElement.innerHTML = '';
+            for (let r = 0; r < GRID_SIZE; r++) {
+                cells[r] = [];
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+
+                    cell.addEventListener('mousedown', (e) => handleCellMouseDown(r, c, e));
+                    cell.addEventListener('mouseenter', () => handleCellMouseEnter(r, c));
+
+                    gridElement.appendChild(cell);
+                    cells[r][c] = cell;
+                }
+            }
+            document.addEventListener('mouseup', () => { isMouseDown = false; });
+            renderGrid();
+        }
+
+        function handleCellMouseDown(r, c, e) {
+            isMouseDown = true;
+            if (currentTool === 'toggle') {
+                gridData[r][c] = gridData[r][c] ? 0 : 1;
+            } else if (currentTool === 'line') {
+                if (!lineStart) {
+                    lineStart = {r, c};
+                } else {
+                    drawLine(lineStart.r, lineStart.c, r, c);
+                    lineStart = null;
+                }
+            }
+            renderGrid();
+            updatePreview();
+        }
+
+        function handleCellMouseEnter(r, c) {
+            if (isMouseDown && currentTool === 'toggle') {
+                gridData[r][c] = 1;
+                renderGrid();
+                updatePreview();
+            }
+        }
+
+        function setTool(tool) {
+            currentTool = tool;
+            lineStart = null;
+            document.getElementById('toolToggle').classList.toggle('active', tool === 'toggle');
+            document.getElementById('toolLine').classList.toggle('active', tool === 'line');
+        }
+
+        function clearGrid() {
+            gridData = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0));
+            lineStart = null;
+            renderGrid();
+            updatePreview();
+        }
+
+        function renderGrid() {
+            const color = document.getElementById('reticleColorInput').value;
+            document.getElementById('reticleHexDisplay').innerText = color;
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    const cell = cells[r][c];
+                    cell.style.backgroundColor = gridData[r][c] === 1 ? color : '';
+                }
+            }
+        }
+
+        function setBgColor(colorHex) {
+            document.getElementById('mapHexDisplay').innerText = colorHex;
+            document.getElementById('viewport3D').style.backgroundColor = colorHex;
+            if (scene) scene.background = new THREE.Color(colorHex);
+        }
+
+        function drawLine(r0, c0, r1, c1) {
+            let dx = Math.abs(c1 - c0);
+            let dy = Math.abs(r1 - r0);
+            let sx = (c0 < c1) ? 1 : -1;
+            let sy = (r0 < r1) ? 1 : -1;
+            let err = dx - dy;
+
+            while (true) {
+                if (r0 >= 0 && r0 < GRID_SIZE && c0 >= 0 && c0 < GRID_SIZE) {
+                    gridData[r0][c0] = 1;
+                }
+                if (r0 === r1 && c0 === c1) break;
+                let e2 = 2 * err;
+                if (e2 > -dy) { err -= dy; c0 += sx; }
+                if (e2 < dx) { err += dx; r0 += sy; }
+            }
+        }
+
+        function applyShape(shape) {
+            clearGrid();
+            if (shape === 'blank') return;
+
+            if (shape === 'cross') {
+                for (let i = 6; i <= 17; i++) {
+                    gridData[11][i] = 1; gridData[12][i] = 1;
+                    gridData[i][11] = 1; gridData[i][12] = 1;
+                }
+            } else if (shape === 'heart') {
+                const heartCoords = [
+                    [6,8],[6,9],[6,14],[6,15],
+                    [7,7],[7,10],[7,13],[7,16],
+                    [8,6],[8,11],[8,12],[8,17],
+                    [9,6],[9,17],[10,7],[10,16],
+                    [11,8],[11,15],[12,9],[12,14],
+                    [13,10],[13,13],[14,11],[14,12]
+                ];
+                heartCoords.forEach(([r,c]) => { if(r<GRID_SIZE && c<GRID_SIZE) gridData[r][c] = 1; });
+            } else if (shape === 'smiley') {
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        let dist = Math.hypot(r - 11.5, c - 11.5);
+                        if (dist >= 8 && dist <= 9) gridData[r][c] = 1;
+                    }
+                }
+                gridData[8][8] = 1; gridData[8][9] = 1; gridData[9][8] = 1; gridData[9][9] = 1;
+                gridData[8][14] = 1; gridData[8][15] = 1; gridData[9][14] = 1; gridData[9][15] = 1;
+                gridData[14][7] = 1; gridData[15][8] = 1; gridData[15][9] = 1;
+                gridData[16][10] = 1; gridData[16][11] = 1; gridData[16][12] = 1; gridData[16][13] = 1;
+                gridData[15][14] = 1; gridData[15][15] = 1; gridData[14][16] = 1;
+            } else if (shape === 'skull') {
+                for (let i = 7; i <= 16; i++) { gridData[5][i] = 1; }
+                for (let r = 6; r <= 12; r++) { gridData[r][6] = 1; gridData[r][17] = 1; }
+                gridData[8][8] = 1; gridData[8][9] = 1; gridData[9][8] = 1; gridData[9][9] = 1;
+                gridData[8][14] = 1; gridData[8][15] = 1; gridData[9][14] = 1; gridData[9][15] = 1;
+                gridData[11][11] = 1; gridData[11][12] = 1;
+                for (let i = 8; i <= 15; i++) { gridData[14][i] = 1; gridData[16][i] = 1; }
+                for (let c = 8; c <= 15; c += 2) { gridData[15][c] = 1; }
+                gridData[2][2] = 1; gridData[3][3] = 1; gridData[4][4] = 1; gridData[18][18] = 1; gridData[19][19] = 1; gridData[20][20] = 1;
+                gridData[2][21] = 1; gridData[3][20] = 1; gridData[4][19] = 1; gridData[18][5] = 1; gridData[19][4] = 1; gridData[20][3] = 1;
+            } else if (shape === 'biohazard') {
+                const centers = [[8, 11.5], [15, 8], [15, 15]];
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        centers.forEach(([cr, cc]) => {
+                            let dist = Math.hypot(r - cr, c - cc);
+                            if (dist >= 3.5 && dist <= 4.5) gridData[r][c] = 1;
+                        });
+                        let centerDist = Math.hypot(r - 11.5, c - 11.5);
+                        if (centerDist >= 1.5 && centerDist <= 2.2) gridData[r][c] = 1;
+                    }
+                }
+            } else if (shape === 'star') {
+                for (let i = 0; i <= 10; i++) {
+                    gridData[11 - i][11] = 1; gridData[11 + i][11] = 1;
+                    gridData[11][11 - i] = 1; gridData[11][11 + i] = 1;
+                    if (i <= 6) {
+                        gridData[11 - i][11 - i] = 1; gridData[11 + i][11 + i] = 1;
+                        gridData[11 - i][11 + i] = 1; gridData[11 + i][11 - i] = 1;
+                    }
+                }
+            } else if (shape === 'donut') {
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        let dist = Math.hypot(r - 11.5, c - 11.5);
+                        if (dist >= 4 && dist <= 8) gridData[r][c] = 1;
+                    }
+                }
+            } else if (shape === 'square') {
+                for (let i = 7; i <= 16; i++) {
+                    gridData[7][i] = 1; gridData[16][i] = 1;
+                    gridData[i][7] = 1; gridData[i][16] = 1;
+                }
+            } else if (shape === 'circle') {
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        let dist = Math.hypot(r - 11.5, c - 11.5);
+                        if (dist >= 5.5 && dist <= 6.8) gridData[r][c] = 1;
+                    }
+                }
+            } else if (shape === 'dot') {
+                for (let r = 10; r <= 13; r++) {
+                    for (let c = 10; c <= 13; c++) {
+                        gridData[r][c] = 1;
+                    }
+                }
+            } else if (shape === 'tstyle') {
+                for (let i = 6; i <= 17; i++) gridData[11][i] = 1;
+                for (let r = 12; r <= 18; r++) { gridData[r][11] = 1; gridData[r][12] = 1; }
+            } else if (shape === 'shotgun') {
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        let dist = Math.hypot(r - 11.5, c - 11.5);
+                        if (dist >= 7.5 && dist <= 8.5) gridData[r][c] = 1;
+                    }
+                }
+                gridData[11][11] = 1; gridData[11][12] = 1; gridData[12][11] = 1; gridData[12][12] = 1;
+            } else if (shape === 'scope') {
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        let dist = Math.hypot(r - 11.5, c - 11.5);
+                        if (dist >= 9.5 && dist <= 10.5) gridData[r][c] = 1;
+                    }
+                }
+                for (let i = 2; i <= 21; i++) {
+                    gridData[11][i] = 1; gridData[i][11] = 1;
+                }
+            }
+            renderGrid();
+            updatePreview();
+        }
+
+        function generateSVGString() {
+            const color = document.getElementById('reticleColorInput').value;
+            const centerStyle = document.getElementById('centerDot').value;
+            let svgPaths = '';
+
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    if (gridData[r][c] === 1) {
+                        svgPaths += `<rect x="${c}" y="${r}" width="1" height="1" fill="${color}"/>`;
+                    }
+                }
+            }
+
+            if (centerStyle === 'square') {
+                svgPaths += `<rect x="11" y="11" width="2" height="2" fill="${color}"/>`;
+            } else if (centerStyle === 'circle') {
+                svgPaths += `<circle cx="12" cy="12" r="1.5" fill="${color}"/>`;
+            } else if (centerStyle === 'tiny') {
+                svgPaths += `<rect x="11.5" y="11.5" width="1" height="1" fill="${color}"/>`;
+            } else if (centerStyle === 'hollow') {
+                svgPaths += `<polygon points="12,9.5 14.5,12 12,14.5 9.5,12" fill="none" stroke="${color}" stroke-width="0.8"/>`;
+            } else if (centerStyle === 'crossdot') {
+                svgPaths += `<line x1="12" y1="9" x2="12" y2="15" stroke="${color}" stroke-width="0.8"/><line x1="9" y1="12" x2="15" y2="12" stroke="${color}" stroke-width="0.8"/>`;
+            } else if (centerStyle === 'diagonal') {
+                svgPaths += `<g transform="rotate(45 12 12)"><line x1="12" y1="6" x2="12" y2="18" stroke="${color}" stroke-width="1.2"/><line x1="6" y1="12" x2="18" y2="12" stroke="${color}" stroke-width="1.2"/></g>`;
+            }
+
+            return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">${svgPaths}</svg>`;
+        }
+
+        function updatePreview() {
+            const scale = document.getElementById('sliderScale').value;
+            const offsetX = document.getElementById('sliderOffsetX').value;
+            const offsetY = document.getElementById('sliderOffsetY').value;
+            const opacity = document.getElementById('sliderOpacity').value;
+            const glow = document.getElementById('sliderGlow').value;
+            const anim = document.getElementById('animStyle').value;
+            const color = document.getElementById('reticleColorInput').value;
+
+            document.getElementById('scaleVal').innerText = scale + 'x';
+            document.getElementById('offsetXVal').innerText = offsetX + 'px';
+            document.getElementById('offsetYVal').innerText = offsetY + 'px';
+            document.getElementById('opacityVal').innerText = opacity + '%';
+            document.getElementById('glowVal').innerText = glow + 'px';
+
+            const svg = generateSVGString();
+            const encodedSvg = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+            const previewEl = document.getElementById('previewReticle');
+
+            const size = 32 * scale;
+            previewEl.style.width = size + 'px';
+            previewEl.style.height = size + 'px';
+            previewEl.style.backgroundImage = `url("${encodedSvg}")`;
+            previewEl.style.backgroundSize = 'contain';
+            previewEl.style.backgroundRepeat = 'no-repeat';
+            previewEl.style.backgroundPosition = 'center';
+            previewEl.style.opacity = opacity / 100;
+            previewEl.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))`;
+            previewEl.style.filter = glow > 0 ? `drop-shadow(0 0 ${glow}px ${color})` : 'none';
+
+            previewEl.style.animation = 'none';
+            if (anim === 'spin') {
+                previewEl.style.animation = 'animSpin 2s linear infinite';
+            } else if (anim === 'pulse') {
+                previewEl.style.animation = 'animPulse 1.5s ease-in-out infinite';
+            } else if (anim === 'rainbow') {
+                previewEl.style.animation = 'animRainbow 3s linear infinite';
+            } else if (anim === 'glitch') {
+                previewEl.style.animation = 'animGlitch 0.8s steps(2, start) infinite';
+            }
+
+            generateUserscript();
+        }
+
+        function generateUserscript() {
+            const name = document.getElementById('scriptNameInput').value || 'CROSHAIRx² Reticle';
+            const svg = generateSVGString();
+            const encodedSvg = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+
+            const scale = document.getElementById('sliderScale').value;
+            const offsetX = document.getElementById('sliderOffsetX').value;
+            const offsetY = document.getElementById('sliderOffsetY').value;
+            const opacity = document.getElementById('sliderOpacity').value / 100;
+            const glow = document.getElementById('sliderGlow').value;
+            const color = document.getElementById('reticleColorInput').value;
+            const anim = document.getElementById('animStyle').value;
+
+            const size = 32 * scale;
+            let animCSS = '';
+            let animProperty = '';
+
+            if (anim === 'spin') {
+                animCSS = '@keyframes reticleSpin { 0% { transform: translate(calc(-50% + ' + offsetX + 'px), calc(-50% + ' + offsetY + 'px)) rotate(0deg); } 100% { transform: translate(calc(-50% + ' + offsetX + 'px), calc(-50% + ' + offsetY + 'px)) rotate(360deg); } }';
+                animProperty = 'animation: reticleSpin 2s linear infinite;';
+            } else if (anim === 'pulse') {
+                animCSS = '@keyframes reticlePulse { 0%, 100% { transform: translate(calc(-50% + ' + offsetX + 'px), calc(-50% + ' + offsetY + 'px)) scale(1); } 50% { transform: translate(calc(-50% + ' + offsetX + 'px), calc(-50% + ' + offsetY + 'px)) scale(1.3); } }';
+                animProperty = 'animation: reticlePulse 1.5s ease-in-out infinite;';
+            } else if (anim === 'rainbow') {
+                animCSS = '@keyframes reticleRainbow { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }';
+                animProperty = 'animation: reticleRainbow 3s linear infinite;';
+            } else if (anim === 'glitch') {
+                animCSS = '@keyframes reticleGlitch { 0%, 100% { opacity: ' + opacity + '; transform: translate(calc(-50% + ' + offsetX + 'px), calc(-50% + ' + offsetY + 'px)); } 20% { opacity: 0.3; transform: translate(calc(-48% + ' + offsetX + 'px), calc(-52% + ' + offsetY + 'px)); } 40% { opacity: 0.9; transform: translate(calc(-52% + ' + offsetX + 'px), calc(-48% + ' + offsetY + 'px)); } 80% { opacity: 0.2; } }';
+                animProperty = 'animation: reticleGlitch 0.8s steps(2, start) infinite;';
+            }
+
+            const dropShadow = glow > 0 ? 'filter: drop-shadow(0 0 ' + glow + 'px ' + color + ');' : '';
+
+            const code = `// ==UserScript==
+// @name         ${name}
+// @namespace    http://tampermonkey.net/
+// @version      8.0
+// @description  Custom reticle generated via CROSHAIRx² with multi-stage pointer-lock auto-activation
+// @author       Aragon
+// @license      MIT
+// @match        https://repuls.io/*
+// @match        https://*.repuls.io/*
+// @grant        none
+// @run-at       document-start
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    var encodedSvg = '${encodedSvg}';
+
+    function injectStyles() {
+        if (document.getElementById('croshair-x2-styles')) return;
+        var style = document.createElement('style');
+        style.id = 'croshair-x2-styles';
+        style.innerHTML = '${animCSS} #crosshair, .crosshair, #defaultCrosshair, [class*="crosshair"], #hud-crosshair { display: none !important; opacity: 0 !important; visibility: hidden !important; } #croshair-x2-overlay { position: fixed !important; top: 50% !important; left: 50% !important; width: ${size}px !important; height: ${size}px !important; background-image: url("' + encodedSvg + '"); background-size: contain; background-repeat: no-repeat; background-position: center; pointer-events: none !important; z-index: 2147483647 !important; display: none; opacity: ${opacity}; ${dropShadow} ${animProperty} transform: translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)); transform-origin: center center; }';
+        (document.head || document.documentElement).appendChild(style);
+    }
+
+    function buildOverlay() {
+        if (document.getElementById('croshair-x2-overlay')) return;
+        var reticle = document.createElement('div');
+        reticle.id = 'croshair-x2-overlay';
+        (document.body || document.documentElement).appendChild(reticle);
+    }
+
+    function isPointerLocked() {
+        if (document.pointerLockElement !== null && document.pointerLockElement !== undefined) return true;
+        if (document.mozPointerLockElement || document.webkitPointerLockElement) return true;
+        var canvas = document.querySelector('canvas');
+        if (canvas && document.pointerLockElement === canvas) return true;
+        try {
+            var iframes = document.querySelectorAll('iframe');
+            for (var i = 0; i < iframes.length; i++) {
+                var iframeDoc = iframes[i].contentDocument || iframes[i].contentWindow.document;
+                if (iframeDoc && iframeDoc.pointerLockElement !== null) return true;
+            }
+        } catch (e) {}
+        return false;
+    }
+
+    function updateVisibility() {
+        var reticle = document.getElementById('croshair-x2-overlay');
+        if (!reticle) return;
+        if (isPointerLocked()) {
+            reticle.style.display = 'block';
+        } else {
+            reticle.style.display = 'none';
+        }
+    }
+
+    function init() {
+        injectStyles();
+        buildOverlay();
+        document.addEventListener('pointerlockchange', updateVisibility, true);
+        document.addEventListener('mozpointerlockchange', updateVisibility, true);
+        document.addEventListener('webkitpointerlockchange', updateVisibility, true);
+        setInterval(function() {
+            injectStyles();
+            buildOverlay();
+            updateVisibility();
+        }, 150);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();`;
+
+            document.getElementById('scriptOutput').value = code;
+        }
+
+        // Initialize 3D Viewport Solid Target Dummy
+        function init3DViewport() {
+            const container = document.getElementById('viewport3D');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            // Lighting setup
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 10, 7.5);
+            scene.add(dirLight);
+
+            const backLight = new THREE.DirectionalLight(0x22c55e, 0.4);
+            backLight.position.set(-5, -5, -5);
+            scene.add(backLight);
+
+            // Raycaster setup for click interactions
+            raycaster = new THREE.Raycaster();
+            mouseVec = new THREE.Vector2();
+
+            // Solid Target Dummy
+            dummyGroup = new THREE.Group();
+
+            dummyArmorMat = new THREE.MeshStandardMaterial({ color: dummyThemes[0].armor, roughness: 0.4, metalness: 0.5 });
+            const darkJointMaterial = new THREE.MeshStandardMaterial({ color: 0x1a1d24, roughness: 0.7, metalness: 0.2 });
+            dummyCoreMat = new THREE.MeshStandardMaterial({ color: dummyThemes[0].core, roughness: 0.3, metalness: 0.8 });
+
+            // Head
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.38, 24, 24), dummyArmorMat);
+            head.position.y = 1.65;
+            dummyGroup.add(head);
+
+            // Visor
+            const visor = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.12, 0.25), dummyCoreMat);
+            visor.position.set(0, 1.68, 0.25);
+            dummyGroup.add(visor);
+
+            // Chest Torso
+            const chest = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.75, 0.45), dummyArmorMat);
+            chest.position.y = 0.9;
+            dummyGroup.add(chest);
+
+            // Target Emblem
+            const centerTarget = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.05, 32), dummyCoreMat);
+            centerTarget.rotation.x = Math.PI / 2;
+            centerTarget.position.set(0, 0.9, 0.23);
+            dummyGroup.add(centerTarget);
+
+            // Abdomen
+            const abdomen = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.5, 0.38), darkJointMaterial);
+            abdomen.position.y = 0.32;
+            dummyGroup.add(abdomen);
+
+            // Arms
+            [-0.55, 0.55].forEach(x => {
+                const upperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.1, 0.55, 16), dummyArmorMat);
+                upperArm.position.set(x * 1.1, 0.65, 0);
+                dummyGroup.add(upperArm);
+            });
+
+            dummyGroup.position.set(0, -0.9, 0);
+            scene.add(dummyGroup);
+
+            camera.position.set(0, 0, 3.5);
+
+            // Click listener for target dummy color cycling
+            container.addEventListener('click', (event) => {
+                const rect = container.getBoundingClientRect();
+                mouseVec.x = ((event.clientX - rect.left) / container.clientWidth) * 2 - 1;
+                mouseVec.y = -((event.clientY - rect.top) / container.clientHeight) * 2 + 1;
+
+                raycaster.setFromCamera(mouseVec, camera);
+                const intersects = raycaster.intersectObjects(dummyGroup.children, true);
+
+                if (intersects.length > 0) {
+                    currentThemeIndex = (currentThemeIndex + 1) % dummyThemes.length;
+                    const nextTheme = dummyThemes[currentThemeIndex];
+                    dummyArmorMat.color.setHex(nextTheme.armor);
+                    dummyCoreMat.color.setHex(nextTheme.core);
+                }
+            });
+
+            function animate() {
+                requestAnimationFrame(animate);
+                if (dummyGroup) {
+                    dummyGroup.rotation.y += 0.005;
+                }
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
+
+        window.addEventListener('resize', () => {
+            const container = document.getElementById('viewport3D');
+            if (container && camera && renderer) {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            }
+        });
+
+        window.onload = function() {
+            initGrid();
+            init3DViewport();
+            applyShape('cross');
+            openModal();
+        };
+    </script>
+</body>
+</html>
